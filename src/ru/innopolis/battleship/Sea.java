@@ -2,7 +2,6 @@ package ru.innopolis.battleship;
 
 import java.awt.*;
 import java.io.Serializable;
-import java.util.ArrayList;
 
 /**
  * Created by krikun on 7/29/2015.
@@ -22,7 +21,7 @@ public class Sea implements Serializable {
         return ships;
     }
 
-//  it's about shots 
+//  it's about shots
     public int[][] getShots() {
         return shots;
     }
@@ -43,12 +42,15 @@ public class Sea implements Serializable {
 
     public boolean canPutShip(Ship ship) {
         if (!ship.isOk) return false;
-//      check for max count of ship for
+//      check for max count of ship for some type (4 - 1; 3 - 2; 2 - 3; 1 - 4)
+//      and ship.length returns 0 for one-deck (like a point), 1 for two-deck, and so on..
         if (decks[ship.length] > (3 - ship.length)) return false;
+//      check free space for ship
         if (ship.horizontal) {
             for (int x = ship.xN; x <= ship.xT; x++)
                 if (ships[x][ship.yN] > 0) return false;
         }
+//      check free space for ship
         if (ship.vertical) {
             for (int y = ship.yN; y <= ship.yT; y++)
                 if (ships[ship.xN][y] > 0) return false;
@@ -71,14 +73,23 @@ public class Sea implements Serializable {
     }
 
     public void autoPutShip(int padding) {
+//      starts from longest ship (3)
         for (int l=3; l>=0; l--) {
+//          if already have ships of this type go to another length
             if (decks[l] == (4-l)) continue;
             for (int i = 0; i < (4-l); i++) {
+//              if already put ships of that type go on..
                 if (decks[l] == (4-l)) continue;
+//              choice random side of sea
+//              (for optimal placing need to place near it)
                 int side = (int) (Math.random() * 4);
+//              generate random indent from side corner
+//              (like you go counter clock wise)
                 int indent = (int) (Math.random() * (10 - l));
                 int x = 0, y = 0;
+//              for side get direction
                 Direction dir = Direction.values()[side];
+//              calculate coordinates
                 switch (side) {
                     case 0:
                         x = padding;
@@ -97,7 +108,9 @@ public class Sea implements Serializable {
                         y = padding;
                         break;
                 }
+//              create ship (just for right coordinates)
                 Ship ship = new Ship(x, y, l, dir);
+//              and if you can put it - put
                 if (canPutShip(ship)) putShip(ship);
             }
         }
@@ -112,6 +125,7 @@ public class Sea implements Serializable {
 
     private boolean checkAlive(int x, int y) {
         boolean result = false;
+//      awful loops for looking in all directions
         for (int i = x - 1; inSea(i) && ships[i][y] > 1; i--) result = result || ships[i][y] == 2;
         for (int i = x + 1; inSea(i) && ships[i][y] > 1; i++) result = result || ships[i][y] == 2;
         for (int i = y - 1; inSea(i) && ships[x][i] > 1; i--) result = result || ships[x][i] == 2;
@@ -121,6 +135,7 @@ public class Sea implements Serializable {
 
     private void fillShipDied(int fill[][], int x, int y) {
         fill[x][y] = 4;
+//      awful loops for filling in all directions
         for (int i = x - 1; inSea(i) && fill[i][y] > 2; i--) fill[i][y] = 4;
         for (int i = x + 1; inSea(i) && fill[i][y] > 2; i++) fill[i][y] = 4;
         for (int i = y - 1; inSea(i) && fill[x][i] > 2; i--) fill[x][i] = 4;
@@ -128,12 +143,14 @@ public class Sea implements Serializable {
     }
 
     private void fillAreaAround(int[][] shots, int x, int y) {
+//      mark area around ship
         for (int i = putInSea(x - 1); i <= putInSea(x + 1); i++)
             for (int j = putInSea(y - 1); j <= putInSea(y + 1); j++)
                 if (shots[i][j] == 0) shots[i][j] = 1;
     }
 
     private void fillShotsArea(int[][] shots, int x, int y) {
+//      awful loops for fill area around all killed cell of ship
         for (int i = x; inSea(i) && shots[i][y] == 4; i--) fillAreaAround(shots, i, y);
         for (int i = x; inSea(i) && shots[i][y] == 4; i++) fillAreaAround(shots, i, y);
         for (int i = y; inSea(i) && shots[x][i] == 4; i--) fillAreaAround(shots, x, i);
@@ -143,6 +160,7 @@ public class Sea implements Serializable {
     public int shot(int[][] shots, int x, int y) {
         if (shots[x][y] > 0) return 1;
         shots[x][y] = 1;
+//      if is ship in this position (marked as 2) then shot and mark
         if (ships[x][y] > 1) {
             hits++;
             ships[x][y] = 3;
